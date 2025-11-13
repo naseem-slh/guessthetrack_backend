@@ -96,7 +96,8 @@ $RECYCLE.BIN/
 *.msi
 *.msm
 *.msp
-
+#sqlite files
+*.sqlite
 # Windows shortcuts
 *.lnk
 
