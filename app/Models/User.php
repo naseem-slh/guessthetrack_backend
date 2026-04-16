@@ -15,7 +15,31 @@ class User extends Authenticatable
 
     public function rooms()
     {
-        return $this->belongsToMany(Room::class);
+        return $this->belongsToMany(Room::class)->withPivot(['role', 'status', 'invited_at', 'invited_by'])->withTimestamps();
+    }
+
+    /**
+     * Get rooms where user is owner
+     */
+    public function ownedRooms()
+    {
+        return $this->belongsToMany(Room::class)->wherePivot('role', 'owner');
+    }
+
+    /**
+     * Get rooms where user is member (accepted invitations)
+     */
+    public function memberRooms()
+    {
+        return $this->belongsToMany(Room::class)->wherePivot('status', 'accepted');
+    }
+
+    /**
+     * Get pending room invitations
+     */
+    public function pendingRoomInvitations()
+    {
+        return $this->belongsToMany(Room::class)->wherePivot('status', 'pending');
     }
     /**
      * The attributes that are mass assignable.
@@ -26,6 +50,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'spotify_access_token',
+        'spotify_refresh_token',
+        'spotify_token_expires_at',
     ];
 
     /**
@@ -36,7 +63,10 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'spotify_access_token',
+        'spotify_refresh_token',
     ];
+
     /**
      * Get the attributes that should be cast.
      *
@@ -47,6 +77,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'spotify_token_expires_at' => 'datetime',
         ];
     }
     #TODO: user can only create one room
