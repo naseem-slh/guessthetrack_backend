@@ -74,6 +74,12 @@ class SongInfoController extends Controller
             'title' => $title,
             'singer' => $singer,
             'year' => $year,
+            'spotify_track_id' => $track['id'],
+            'spotify_external_urls' => $track['external_urls'],
+            'spotify_preview_url' => $track['preview_url'],
+            'spotify_images' => $track['album']['images'] ?? [],
+            'spotify_duration_ms' => $track['duration_ms'],
+            'spotify_uri' => $track['uri'],
         ]);
     }
 
@@ -117,18 +123,37 @@ class SongInfoController extends Controller
     {
         $genres = ['pop', 'rock', 'hip-hop', 'dance', 'chill', 'jazz', 'rnb', 'indie'];
         $seedGenre = $genres[array_rand($genres)];
-
+        
+        logger()->info('Spotify token check', [
+            'token_length' => strlen($token),
+            'token_start' => substr($token, 0, 20),
+        ]);
+        
         $response = Http::withToken($token)
-            ->get('https://api.spotify.com/v1/recommendations', [
-                'limit' => 1,
-                'seed_genres' => $seedGenre,
-            ]);
+    ->get('https://api.spotify.com/v1/search', [
+        'q' => 'genre:"' . $seedGenre . '"', // Filter by genre
+        'type' => 'track',
+        'limit' => 1,               // We only want one song
+        'offset' => rand(0, 1000)   ]); // Randomize the offset to get different songs]);
+
+        logger()->info('Spotify API Response', [
+            'status' => $response->status(),
+            'successful' => $response->successful(),
+            'body' => $response->body(),
+            'headers' => $response->headers(),
+        ]);
 
         if (!$response->successful()) {
+            logger()->error('Spotify API Error', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'json' => $response->json(),
+            ]);
             return null;
         }
 
         $data = $response->json();
+        logger()->info('Spotify tracks received', ['count' => count($data['tracks'] ?? [])]);
         return $data['tracks'][0] ?? null;
     }
 

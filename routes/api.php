@@ -12,6 +12,7 @@ use App\Http\Controllers\API\UserAnswerController;
 use App\Http\Controllers\SpotifyController;
 
 Route::middleware('auth:sanctum')->group( function () {
+    Route::get('/rooms/invitations', [RoomController::class, 'getInvitations']);
     Route::resource('/rooms', RoomController::class);
     Route::post('/rooms/{room}/invite', [RoomController::class, 'inviteUser']);
     Route::post('/rooms/{room}/accept-invitation', [RoomController::class, 'acceptInvitation']);
@@ -23,6 +24,7 @@ Route::middleware('auth:sanctum')->group( function () {
     Route::post('/rounds/{round}/calculate-scores', [RoundController::class, 'calculateScores']);
     Route::resource('/user-answers', UserAnswerController::class);
     Route::get('/spotify/login-url', [SpotifyController::class, 'loginUrl'])->name('spotify.login-url');
+    Route::get('/me', [UserController::class, 'me']);
     Route::resource('/users', UserController::class);
     Route::resource('/game-settings', GameSettingController::class);
     Route::resource('/song-infos', SongInfoController::class);

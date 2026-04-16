@@ -15,7 +15,7 @@ class GameController extends Controller
         // Get games from rooms the user has access to
         $user = auth()->user();
         $roomIds = $user->rooms()->wherePivot('status', 'accepted')->pluck('rooms.id');
-        $ownedRoomIds = $user->ownedRooms()->pluck('id');
+        $ownedRoomIds = $user->ownedRooms()->pluck('rooms.id');
         $accessibleRoomIds = $roomIds->merge($ownedRoomIds);
 
         return Game::whereIn('room_id', $accessibleRoomIds)

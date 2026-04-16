@@ -8,6 +8,11 @@ use App\Models\User;
 class UserController extends Controller
 {
 
+    public function me()
+    {
+        return auth()->user();
+    }
+
     public function index()
     {
         return User::get();

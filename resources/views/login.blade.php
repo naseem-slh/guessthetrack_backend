@@ -151,7 +151,7 @@
     </div>
 
     <script>
-        const baseUrl = 'http://localhost:8000/api';
+        const baseUrl = window.location.origin + '/api';
         let token = localStorage.getItem('auth_token');
 
         // Check if already logged in
@@ -226,6 +226,13 @@
             if (result.status === 200 && result.data.success && result.data.data.token) {
                 token = result.data.data.token;
                 localStorage.setItem('auth_token', token);
+                
+                // Get user info and store user ID
+                const userResult = await apiCall('GET', '/me');
+                if (userResult.status === 200) {
+                    localStorage.setItem('user_id', userResult.data.id);
+                }
+                
                 setTimeout(() => {
                     window.location.href = '/dashboard';
                 }, 2000);
@@ -248,6 +255,13 @@
             if (result.status === 200 && result.data.success && result.data.data.token) {
                 token = result.data.data.token;
                 localStorage.setItem('auth_token', token);
+                
+                // Get user info and store user ID
+                const userResult = await apiCall('GET', '/me');
+                if (userResult.status === 200) {
+                    localStorage.setItem('user_id', userResult.data.id);
+                }
+                
                 setTimeout(() => {
                     window.location.href = '/dashboard';
                 }, 2000);

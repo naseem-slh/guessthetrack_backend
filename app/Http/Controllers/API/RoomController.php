@@ -11,22 +11,73 @@ use Illuminate\Support\Facades\Log;
 class RoomController extends Controller
 {
 
-    public function index()
-    {
-        $user = Auth::user();
-        // Get rooms where user is owner or member
-        $ownedRooms = $user->ownedRooms()->with('creator')->get();
-        $memberRooms = $user->memberRooms()->with('creator')->get();
-        $pendingRooms = $user->pendingRoomInvitations()->with('creator')->get();
+public function index(Request $request)
+{
 
-        $rooms = $ownedRooms->merge($memberRooms)->merge($pendingRooms);
+    $user = Auth::user();
+    logger()->info('User ID for getting rooms: ' . $user->id);
 
+    // 1. Fetch the data using the relationships defined in your User model
+    // Note: Use 'rooms.id' in your pluck or select if you still get ambiguity errors
+    $ownedRooms = $user->ownedRooms()->with('creator')->get();
+
+    // 2. Handle the 'owned_only' filter
+    if ($request->boolean('owned_only')) {
+        logger()->info("Requesting owned rooms only for user ID: " . $user->id);
+        
+        // Return in the SAME format as the general response for consistency
         return response()->json([
-            'success' => $rooms,
-            'message' => 'Rooms retrieved successfully.'
+            'success' => $ownedRooms,
+            'message' => 'Owned rooms retrieved successfully.'
         ]);
     }
 
+    // 3. Fetch other room types if not filtering for owned_only
+    $memberRooms = $user->memberRooms()->with('creator')->get();
+    // Don't include pending invitations in the main rooms list anymore
+
+    // 4. Merge owned and member rooms only (pending invitations are fetched separately)
+    $rooms = $ownedRooms->merge($memberRooms);
+
+    logger()->info('User ID: ' . $user->id);
+    logger()->info('Total Rooms Found: ' . $rooms->count());
+
+    return response()->json([
+        'success' => $rooms,
+        'message' => 'Rooms retrieved successfully.'
+    ]);
+}
+
+    /**
+     * Get pending room invitations for the authenticated user
+     */
+    public function getInvitations()
+    {
+        $user = Auth::user();
+        logger()->info('User ID for pending invitations: ' . $user->id);
+
+        $pendingInvitations = $user->pendingRoomInvitations()
+            ->with('creator')
+            ->with(['users' => function($query) use ($user) {
+                $query->where('user_id', $user->id)->select('room_id', 'user_id', 'invited_by');
+            }])
+            ->get()
+            ->map(function($room) use ($user) {
+                // Add the invited_by_name to the room
+                $pivot = $room->users->where('user_id', $user->id)->first();
+                $invitedByUser = \App\Models\User::find($pivot?->invited_by);
+                $room->pivot = $pivot;
+                $room->pivot->invited_by_name = $invitedByUser?->name ?? 'Unknown';
+                return $room;
+            });
+            logger()->info('User ID: ' . $user->id);
+            logger()->info('Pending Invitations Count: ' . $pendingInvitations->count());
+
+        return response()->json([
+            'success' => $pendingInvitations,
+            'message' => 'Pending invitations retrieved successfully.'
+        ]);
+    }
     /**
      * Show a specific room
      */
@@ -115,6 +166,8 @@ class RoomController extends Controller
      */
     public function inviteUser(Request $request, $roomId)
     {
+
+
         $room = Room::findOrFail($roomId);
 
         $this->authorize('invite', $room);
@@ -124,7 +177,8 @@ class RoomController extends Controller
         ]);
 
         $user = User::where('email', $request->email)->first();
-
+        logger()->info('inviting user to room ' . $roomId);
+        logger()->info('User ID: ' . $user->id);
         // Check if user is already in the room
         if ($room->users()->where('user_id', $user->id)->exists()) {
             return response()->json([

@@ -7,7 +7,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SongInfo extends Model
 {
-    protected $fillable = ['title', 'singer', 'year'];
+    protected $fillable = [
+        'title',
+        'singer',
+        'year',
+        'spotify_track_id',
+        'spotify_external_urls',
+        'spotify_preview_url',
+        'spotify_images',
+        'spotify_duration_ms',
+        'spotify_uri'
+    ];
+
+    protected $casts = [
+        'spotify_external_urls' => 'array',
+        'spotify_images' => 'array',
+    ];
 
     public function userAnswers(): HasMany
     {

@@ -16,8 +16,12 @@ class GameSettingController extends Controller
         // Get game settings from rooms the user has access to
         $user = auth()->user();
         $roomIds = $user->rooms()->wherePivot('status', 'accepted')->pluck('rooms.id');
-        $ownedRoomIds = $user->ownedRooms()->pluck('id');
+        $ownedRoomIds = $user->ownedRooms()->pluck('rooms.id');
+        logger()->info('User ID: ' . $user->id);
+        logger()->info('Room IDs from member rooms: ' . $roomIds);
+        logger()->info('Room IDs from owned rooms: ' . $ownedRoomIds);
         $accessibleRoomIds = $roomIds->merge($ownedRoomIds);
+        logger()->info('Accessible Room IDs: ' . $accessibleRoomIds);
 
         return GameSetting::whereIn('room_id', $accessibleRoomIds)->with('room')->get();
     }
@@ -33,9 +37,15 @@ class GameSettingController extends Controller
             'genre' => 'required|string',
         ]);
 
-        $gameSetting = GameSetting::create($request->all());
+        // Check if user owns the room before creating the game setting
+        $user = auth()->user();
+        $room = \App\Models\Room::findOrFail($request->room_id);
+        
+        if ($room->creator_id !== $user->id) {
+            return response()->json(['error' => 'You can only create game settings for rooms you own.'], 403);
+        }
 
-        $this->authorize('create', $gameSetting);
+        $gameSetting = GameSetting::create($request->all());
 
         return $gameSetting->load('room');
     }
