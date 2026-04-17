@@ -779,7 +779,7 @@ const result = await apiCall('GET', '/rooms?owned_only=1');
         async function playSong(trackId) {
             const modal = document.getElementById('spotify-player-modal');
             const playerContainer = document.getElementById('spotify-player-container');
-
+            
             // Create Spotify embed player
             playerContainer.innerHTML = `
                 <iframe src="https://open.spotify.com/embed/track/${trackId}"

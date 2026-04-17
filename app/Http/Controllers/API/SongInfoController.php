@@ -7,7 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
-
+use Illuminate\Support\Str;
 class SongInfoController extends Controller
 {
     /**
@@ -66,17 +66,19 @@ class SongInfoController extends Controller
             ], 500);
         }
 
-        $title = $track['name'];
-        $singer = collect($track['artists'])->pluck('name')->join(', ');
+        $title = $track['name']??"Unknown Title";
+        $singer = collect($track['artists'])->pluck('name')->join(', ')??"Unknown Artist";
         $year = $this->extractReleaseYear($track['album']['release_date'] ?? null);
+        $uri = $track['uri']??":"; // "spotify:track:7lDGg8CFySbkKUrjgzcLlY"
 
+        $trackId = Str::afterLast($uri, ':');
         return SongInfo::create([
             'title' => $title,
             'singer' => $singer,
             'year' => $year,
-            'spotify_track_id' => $track['id'],
+            'spotify_track_id' => $trackId,
             'spotify_external_urls' => $track['external_urls'],
-            'spotify_preview_url' => $track['preview_url'],
+            'spotify_preview_url' => "",
             'spotify_images' => $track['album']['images'] ?? [],
             'spotify_duration_ms' => $track['duration_ms'],
             'spotify_uri' => $track['uri'],
@@ -153,8 +155,12 @@ class SongInfoController extends Controller
         }
 
         $data = $response->json();
-        logger()->info('Spotify tracks received', ['count' => count($data['tracks'] ?? [])]);
-        return $data['tracks'][0] ?? null;
+        logger()->info('Spotify tracks received', ['count' => count($data['tracks']['items'] ?? [])]);
+                logger()->info('Spotify ', $data['tracks'] );
+
+        logger()->info('Random spotify track', ['track' => $data['tracks']['items'][0] ?? null]);
+
+        return $data['tracks']['items'][0] ?? null;
     }
 
     protected function extractReleaseYear(?string $releaseDate): int
